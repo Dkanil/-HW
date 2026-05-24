@@ -3,19 +3,18 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import CubicHermiteSpline
 
 
-def f(x):
+def func(x):
     return x ** 2 - 3 * x + x * np.log(x)
 
 
-def df(x):
-    return 2 * x - 2 + np.log(x)
+def df(f, x, eps=1e-7):
+    return (f(x + eps) - f(x)) / eps
 
 
-
-def plot_approximation(x_range, approx_func, points_x, points_y, title, iter_num):
+def plot_approximation(approx_func, points_x, points_y, title, iter_num):
     x_vals = np.linspace(0.5, 2.5, 100)
     plt.figure(figsize=(8, 5))
-    plt.plot(x_vals, f(x_vals), 'k-', linewidth=2, label='Исходная функция f(x)')
+    plt.plot(x_vals, func(x_vals), 'k-', linewidth=2, label='Исходная функция f(x)')
     plt.plot(x_vals, approx_func(x_vals), 'r--', linewidth=2, label='Аппроксимирующая функция')
     plt.scatter(points_x, points_y, color='blue', s=60, zorder=5, label='Опорные точки')
     plt.title(f"{title}. Итерация {iter_num}")
@@ -29,13 +28,13 @@ def plot_approximation(x_range, approx_func, points_x, points_y, title, iter_num
 # квадратичная аппроксимация
 def quadratic_approximation(x1, dx, eps, iteration):
     x2 = x1 + dx
-    f1, f2 = f(x1), f(x2)
+    f1, f2 = func(x1), func(x2)
 
     if f1 > f2:
         x3 = x1 + 2 * dx
     else:
         x3 = x1 - dx
-    f3 = f(x3)
+    f3 = func(x3)
 
     while True:
         iteration += 1
@@ -50,7 +49,7 @@ def quadratic_approximation(x1, dx, eps, iteration):
             return quadratic_approximation(xmin, dx, eps, iteration)
 
         x_bar = num / den
-        f_bar = f(x_bar)
+        f_bar = func(x_bar)
         err_f = abs((fmin - f_bar) / f_bar) if f_bar != 0 else 0
         err_x = abs((xmin - x_bar) / x_bar) if x_bar != 0 else 0
 
@@ -61,7 +60,7 @@ def quadratic_approximation(x1, dx, eps, iteration):
         if iteration <= 2:
             coeffs = np.polyfit([x1, x2, x3], [f1, f2, f3], 2)
             parabola = np.poly1d(coeffs)
-            plot_approximation([0.5, 2.5], parabola, [x1, x2, x3], [f1, f2, f3], "Квадратичная аппроксимация",
+            plot_approximation(parabola, [x1, x2, x3], [f1, f2, f3], "Квадратичная аппроксимация",
                                iteration)
 
         if abs((fmin - f_bar) / f_bar) < eps and abs((xmin - x_bar) / x_bar) < eps:
@@ -84,8 +83,8 @@ def quadratic_approximation(x1, dx, eps, iteration):
 # кубическая аппроксимация
 def cubic_approximation(x1, x2, eps=0.0001, max_iter=10):
     for i in range(1, max_iter + 1):
-        y1, y2 = f(x1), f(x2)
-        y11, y12 = df(x1), df(x2)
+        y1, y2 = func(x1), func(x2)
+        y11, y12 = df(func, x1), df(func, x2)
 
         z = y11 + y12 - 3 * (y2 - y1) / (x2 - x1)
         w = np.sqrt(z ** 2 - y11 * y12)
@@ -93,19 +92,19 @@ def cubic_approximation(x1, x2, eps=0.0001, max_iter=10):
         mu = (w + z - y11) / (2 * w - y11 + y12)
         x_new = x1 + mu * (x2 - x1)
 
-        print(f"{i:<7} | [{x1:.4f}, {x2:.4f}] | {x_new:<8.4f} | {f(x_new):<10.5f}")
+        print(f"{i:<7} | [{x1:.4f}, {x2:.4f}] | {x_new:<8.4f} | {func(x_new) :<10.5f}")
 
         #  график для ДЗ 1.2
         if i <= 2:
             cubic_poly = CubicHermiteSpline([x1, x2], [y1, y2], [y11, y12])
-            plot_approximation([0.5, 2.5], cubic_poly, [x1, x2], [y1, y2], "Кубическая аппроксимация", i)
+            plot_approximation(cubic_poly, [x1, x2], [y1, y2], "Кубическая аппроксимация", i)
 
-        if abs(df(x_new)) < eps:
+        if abs(df(func, x_new)) < eps:
             print(f"Минимум найден в точке x = {x_new:.6f}")
-            print(f"Значение функции f(x) = {f(x_new):.6f}")
+            print(f"Значение функции f(x) = {func(x_new) :.6f}")
             break
 
-        if df(x_new) < 0:
+        if df(func, x_new) < 0:
             x1 = x_new
         else:
             x2 = x_new
